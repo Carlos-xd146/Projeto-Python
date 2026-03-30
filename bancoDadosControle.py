@@ -27,6 +27,12 @@ def pegar_produtos():
     conexao.close()
     return produtos
 
-print(pegar_produtos())
+produtos = pegar_produtos()
+
+for produto in produtos:
+    nome = produto["nome"]
+    preco = produto["preco"]
+    
+    print(f"{nome} - R$ {preco:.2f}".replace('.', ','))
 
 # Pegar só um produto
