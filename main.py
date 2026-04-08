@@ -10,7 +10,7 @@ def atualizar_botao_carrinho ():
     if btn_carrinho:
         btn_carrinho.configure(text=f"🛒 Carrinho ({(carrinho)})")
     
-def adcionar(p):
+def adicionar(p):
     if p["id"] in carrinho:
         carrinho[p["id"]]["qtd"] += 1
     else:
@@ -44,18 +44,18 @@ def tela_produtos():
         card = ctk.CTkFrame(lista, corner_radius=10)
         card.pack(fill="x", padx=5, pady=5)
 
-    ctk.CTkLabel(
-        card,
-        text=f"{produto['nome']} - R$ {produto['preco']:.2f}",
-        font=("Arial", 12),
-    ).pack(side="left", padx=10, pady=8)
+        ctk.CTkLabel(
+            card,
+            text=f"{produto['nome']} - R$ {produto['preco']:.2f}",
+            font=("Arial", 12),
+        ).pack(side="left", padx=10, pady=8)
 
-    ctk.CTkButton(
-        card,
-        text="🛒 Adcionar",
-        width=100,
-        commando=lambda p=produto: adcionar(p),
-    ).pack(side="right", padx=5, pady=5)
+        ctk.CTkButton(
+            card,
+            text="🛒 Adicionar",
+            width=100,
+            command=lambda p=produto: adicionar(p),
+        ).pack(side="right", padx=5, pady=5)
 
 def main():
     global root
@@ -68,7 +68,7 @@ def main():
     tela_produtos()
     root.mainloop()
 
-if __name__ == "__name__":
+if __name__ == "__main__":
     main()
 
         
