@@ -1,14 +1,41 @@
 import customtkinter as ctk
 
+from tkinter import messagebox
+
 from bancoDadosControle import inicializar_bancodados, pegar_produtos
 
 carrinho = {}
-root = None
-btn_carrinho = None
+root = tela_atual = btn_carrinho = label_total = None
+btn_carrinho = {}
+
+def limpar_tela():
+    global tela_atual, btn_carrinho, label_total, itens_carrinho
+    if tela_atual:
+        tela_atual.destroy()
+    tela_atual = btn_carrinho = label_total = None
+    itens_carrinho = {}
+
+def total_carrinho():
+    total = 0
+    for item in carrinho.values():
+        total += item["qtd"] * item["produto"]["preco"]
+    return total
 
 def atualizar_botao_carrinho ():
     if btn_carrinho:
         btn_carrinho.configure(text=f"🛒 Carrinho ({(carrinho)})")
+
+def atualizar_total_carrinho():
+    if label_total and label_total.winfo_exists():
+        label_total.configure(text=f"Total: R$ {total_carrinho():.2f}")
+
+def atualizar_item_carrinho(pid):
+    if pid in carrinho and pid in itens_carrinho:
+        item = carrinho[pid]
+        itens_carrinho[pid][1].configure(text=str(item["qtd"]))
+        itens_carrinho[pid][2].configure(text=f"Total: R$ {item['qtd'] * item['produto']['preco']:.2f}")
+    atualizar_total_carrinho()
+    atualizar_botao_carrinho()
     
 def adicionar(p):
     if p["id"] in carrinho:
@@ -17,11 +44,40 @@ def adicionar(p):
         carrinho[p["id"]] = {"produto": p, "qtd": 1}
     atualizar_botao_carrinho()
 
-def tela_produtos():
-    frame = ctk.CTkFrame(root)
-    frame.pack(fill="both", expand=True, padx=10, pady=10)
+def alterar_qtd(pid, delta):
+    if pid in carrinho:
+        carrinho[pid]["qtd"] += delta
+        if carrinho[pid]["qtd"] <= 0:
+            remover(pid)
+        else:
+            atualizar_item_carrinho(pid)
+        
+def remover(pid):
+    if pid in carrinho:
+        del carrinho[pid]
+        atualizar_botao_carrinho()
+        if pid in itens_carrinho:
+            itens_carrinho[pid][0].destroy()
+            del itens_carrinho[pid]
+            if carrinho:
+                atualizar_total_carrinho()
+            else:
+                tela_carrinho()
 
-    header = ctk.CTkFrame(frame)
+def limpar_carrinho():
+    if messagebox.askyesno("Confirmar", "Limpar carrinho?"):
+        carrinho.clear()
+        atualizar_botao_carrinho()
+        tela_carrinho()
+
+def tela_produtos():
+    global tela_atual, btn_carrinho
+    limpar_tela()
+  
+    tela_atual = ctk.CTkFrame(root)
+    tela_atual.pack(fill="both", expand=True, padx=10, pady=10)
+
+    header = ctk.CTkFrame(tela_atual)
     header.pack(fill="x", pady=10)
 
     ctk.CTkLabel(
@@ -30,14 +86,14 @@ def tela_produtos():
         font=("Arial", 24, "bold"),
     ).pack(side="left")
 
-    global btn_carrinha
     btn_carrinho = ctk.CTkButton(
         header,
         text=f"🛒 Carrinho ({len(carrinho)})",
+        command=tela_carrinho,
     )
     btn_carrinho.pack(side="right", padx=5)
 
-    lista = ctk.CTkScrollableFrame(frame)
+    lista = ctk.CTkScrollableFrame(tela_atual)
     lista.pack(fill="both", expand=True)
 
     for produto in pegar_produtos():
@@ -56,6 +112,98 @@ def tela_produtos():
             width=100,
             command=lambda p=produto: adicionar(p),
         ).pack(side="right", padx=5, pady=5)
+
+def tela_carrinho():
+    global tela_atual, label_total, itens_carrinho
+    limpar_tela()
+
+    tela_atual = ctk.CTkFrame(root)
+    tela_atual.pack(fill="both", expand=True, padx=10, pady=10)
+
+    ctk.CTkButton(tela_atual, text="⇐ Voltar", command=tela_produtos).pack(pady=10)
+    ctk.CTkLabel(
+        tela_atual,
+        text="🛒 Meu Carrinho",
+        font=("Arial", 20, "bold"),
+    ).pack()
+
+    if not carrinho:
+        ctk.CTkLabel(
+            tela_atual,
+            text="Carrinho vazio :(",
+            font=("Arial", 14),
+        ).pack(pady=50)
+        return
+    
+    scroll = ctk.CTkScrollableFrame(tela_atual)
+    scroll.pack(fill="both", expand=True, pady=10)
+
+    for pid, item in carrinho.items():
+        p = item["produto"]
+        card = ctk.CTkFrame(scroll, corner_radius=10)
+        card.pack(fill="x", padx=5, pady=5)
+
+        info = ctk.CTkFrame(card, fg_color="transparent")
+        info.pack(fill = "x", padx=10, pady=8)
+
+        ctk.CTkLabel(
+            info,
+            text=f"{p['nome']} - R$ {p['preco']:.2f}",
+            font=("Arial", 12),
+        ).pack(anchor="w")
+
+        ctrl = ctk.CTkFrame(info, fg_color="transparent")
+        ctrl.pack(fill="x", pady=5)
+
+        ctk.CTkButton(
+            ctrl,
+            text="-",
+            width=30,
+            command=lambda pid=pid: alterar_qtd(pid, -1),
+        ).pack(side="left", padx=2)
+
+        qtd = ctk.CTkLabel(ctrl, text=str(item["qtd"]), font=("Arial", 12))
+        qtd.pack(side="left", padx=10)
+
+        ctk.CTkButton(
+            ctrl,
+            text="+",
+            width=30,
+            command=lambda pid=pid: alterar_qtd(pid, 1),
+        ).pack(side="left", padx=2)
+
+        total_item = ctk.CTkLabel(
+            ctrl,
+            text=f"Total: R$ {item['qtd'] * p['preco']:.2f}",
+            font=("Arial", 12, "bold"),
+        )
+        total_item.pack(side="right")
+
+        ctk.CTkButton(
+            ctrl,
+            text="🗑️",
+            width=30,
+            command=lambda pid=pid: remover(pid),
+        ).pack(side="right", padx=5)
+
+        itens_carrinho[pid] = card, qtd, total_item
+
+    label_total = ctk.CTkLabel(
+        tela_atual,
+        text=f"total: R$ {total_carrinho():.2f}",
+        font=("Arial", 16, "bold"),
+    )
+    label_total.pack(pady=10)
+
+    footer = ctk.CTkFrame(tela_atual)
+    footer.pack(fill="x", pady=10)
+
+    ctk.CTkButton(
+        footer,
+        text="🗑️ limpar",
+        command=limpar_carrinho,
+    ).pack(side="right", padx=5)
+
 
 def main():
     global root
