@@ -1,12 +1,15 @@
 import customtkinter as ctk
-
 from tkinter import messagebox
 
-from bancoDadosControle import inicializar_bancodados, pegar_produtos
+import qrcode
+import pyperclip
+from PIL import ImageTk
+
+from bancoDadosControle import inicializar_bancodados, pegar_produtos, salvar_carrinho
 
 carrinho = {}
 root = tela_atual = btn_carrinho = label_total = None
-btn_carrinho = {}
+itens_carrinho = {}
 
 def limpar_tela():
     global tela_atual, btn_carrinho, label_total, itens_carrinho
@@ -22,8 +25,8 @@ def total_carrinho():
     return total
 
 def atualizar_botao_carrinho ():
-    if btn_carrinho:
-        btn_carrinho.configure(text=f"🛒 Carrinho ({(carrinho)})")
+    if btn_carrinho and btn_carrinho.winfo_exists():
+        btn_carrinho.configure(text=f"🛒 Carrinho ({len(carrinho)})")
 
 def atualizar_total_carrinho():
     if label_total and label_total.winfo_exists():
@@ -204,6 +207,66 @@ def tela_carrinho():
         command=limpar_carrinho,
     ).pack(side="right", padx=5)
 
+    ctk.CTkButton(
+        footer,
+        text="📤 Compartilhar",
+        command=tela_qr,
+    ).pack(side="right", padx=5)
+
+def tela_qr():
+    global tela_atual
+    limpar_tela()
+    tela_atual = ctk.CTkFrame(root)
+    tela_atual.pack(fill="both", expand=True, padx=20, pady=20)
+
+    ctk.CTkButton(tela_atual, text="← Voltar", command=tela_carrinho).pack(pady=10)
+    ctk.CTkLabel(
+        tela_atual,
+        text="📤 Compartilhar",
+        font=("Arial", 20, "bold"),
+    ).pack(pady=20)
+    ctk.CTkLabel(tela_atual, text="✅ Carrinho salvo!", font=("Arial", 14)).pack()
+
+    itens = []
+    for pid, item in carrinho.items():
+        itens.append({
+            "id": pid,
+            "qty": item["qtd"],
+            "preco": item["produto"]["preco"],
+        })
+
+    codigo = salvar_carrinho(itens)
+
+    ctk.CTkLabel(
+        tela_atual,
+        text=codigo,
+        font=("Arial", 16, "bold"),
+    ).pack(pady=20)
+
+    qr = qrcode.QRCode(version=1, box_size=10, border=1)
+    qr.add_data(codigo)
+    qr.make(fit=True)
+
+    photo = ImageTk.PhotoImage(
+        qr.make_image(fill_color="black", back_color="white").resize((250,250))
+    )
+
+    qr_label = ctk.CTkLabel(tela_atual, text="", image=photo)
+    qr_label.image = photo
+    qr_label.pack(pady=20)
+
+    ctk.CTkButton(
+        tela_atual,
+        text="📋 Copiar",
+        command=lambda: pyperclip.copy(codigo),
+    ).pack(pady=5)
+
+    ctk.CTkButton(
+        tela_atual,
+        text="🛒 Novo Carrinho",
+        command=lambda: (carrinho.clear(), tela_produtos()),
+    ).pack(pady=5)
+
 
 def main():
     global root
@@ -211,7 +274,7 @@ def main():
     ctk.set_default_color_theme("blue")
     root = ctk.CTk()
     root.title("Share Products")
-    root.geometry("800x600")
+    root.geometry("900x700")
     inicializar_bancodados()
     tela_produtos()
     root.mainloop()
