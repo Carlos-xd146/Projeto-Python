@@ -53,6 +53,12 @@ def salvar_carrinho(itens):
     with open(carrinhos_file, 'w', encoding="utf-8") as arquivo:
         json.dump(carrinhos, arquivo)
     return codigo
+
+def carregar_carrinho(codigo):
+    if not os.path.exists(carrinhos_file):
+        return None
+    with open(carrinhos_file, "r", encoding="utf-8") as f:
+        return json.load(f).get(codigo)
     
  
 # produtos = pegar_produtos()

@@ -1,11 +1,12 @@
 import customtkinter as ctk
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 
 import qrcode
 import pyperclip
+import cv2
 from PIL import ImageTk
 
-from bancoDadosControle import inicializar_bancodados, pegar_produtos, salvar_carrinho
+from bancoDadosControle import inicializar_bancodados, pegar_produtos, salvar_carrinho, carregar_carrinho
 
 carrinho = {}
 root = tela_atual = btn_carrinho = label_total = None
@@ -115,6 +116,43 @@ def tela_produtos():
             width=100,
             command=lambda p=produto: adicionar(p),
         ).pack(side="right", padx=5, pady=5)
+
+    ctk.CTkButton(
+        header,
+        text="📷 Let QR.",
+        command= tela_qr_reader,
+    ).pack(side="right", padx=5)
+
+def tela_qr_reader():
+    global tela_atual
+    limpar_tela
+    tela_atual = ctk.CTkFrame(root)
+    tela_atual.pack(fill = "both", expand=True, padx=20, pady=20)
+
+    ctk.CTkButton(tela_atual, text="← Voltar", command=tela_produtos).pack(pady=10)
+    ctk.CTkLabel(
+        tela_atual,
+        text="📷 Ler QR Code",
+        font=("Arial", 20, "bold"),
+    ).pack(pady=20)
+    ctk.CTkLabel(tela_atual, text="Digite o código:", font=("Arial", 14)).pack()
+
+    codigo_input = ctk.CTkEntry(tela_atual, width=250)
+    codigo_input.pack(pady=10)
+
+    ctk.CTkButton(
+        tela_atual,
+        text="📥 Carregar",
+        command=lambda: carregar_qr(codigo_input.get()),
+    ).pack(pady=5)
+
+    ctk.CTkLabel(tela_atual, text="————— OU —————")
+
+
+
+
+
+
 
 def tela_carrinho():
     global tela_atual, label_total, itens_carrinho
