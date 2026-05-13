@@ -6,7 +6,8 @@ import pyperclip
 import cv2
 from PIL import ImageTk
 
-from bancoDadosControle import inicializar_bancodados, pegar_produtos, salvar_carrinho, carregar_carrinho
+
+from bancoDadosControle import inicializar_bancodados, pegar_produtos, salvar_carrinho, carregar_carrinho, pegar_produto
 
 carrinho = {}
 root = tela_atual = btn_carrinho = label_total = None
@@ -97,10 +98,26 @@ def tela_produtos():
     )
     btn_carrinho.pack(side="right", padx=5)
 
+    filtro_var = ctk.StringVar()
+
+    ctk.CTkEntry(
+        tela_atual,
+        textvariable=filtro_var,
+        placeholder_text="🔍 Filtrar...",
+    ).pack(fill="x", pady=5)
+
     lista = ctk.CTkScrollableFrame(tela_atual)
     lista.pack(fill="both", expand=True)
 
-    for produto in pegar_produtos():
+    # def atualizar_produtos(*args):
+    #     for w in lista.winfo_children():
+    #         w.destroy()
+        
+        # for produto in pegar_produtos(filtro_var.get()):
+        # card = ctk.CTkFrame(lista, corner_radius=10)
+        # card.pack(fill="x", padx=5, pady=5)
+
+    for produto in pegar_produtos(filtro_var.get()):
         card = ctk.CTkFrame(lista, corner_radius=10)
         card.pack(fill="x", padx=5, pady=5)
 
@@ -119,7 +136,7 @@ def tela_produtos():
 
     ctk.CTkButton(
         header,
-        text="📷 Let QR.",
+        text="📷 Ler QR.",
         command= tela_qr_reader,
     ).pack(side="right", padx=5)
 
@@ -138,7 +155,7 @@ def tela_qr_reader():
     ctk.CTkLabel(tela_atual, text="Digite o código:", font=("Arial", 14)).pack()
 
     codigo_input = ctk.CTkEntry(tela_atual, width=250)
-    codigo_input.pack(pady=10)
+    codigo_input.pack(pady=10) 
 
     ctk.CTkButton(
         tela_atual,
@@ -146,11 +163,78 @@ def tela_qr_reader():
         command=lambda: carregar_qr(codigo_input.get()),
     ).pack(pady=5)
 
-    ctk.CTkLabel(tela_atual, text="————— OU —————")
+    ctk.CTkLabel(tela_atual, text="————— OU —————").pack(pady=20)
 
+    ctk.CTkButton(
+        tela_atual,
+        text="📁 Abrir Imagem",
+        command=ler_imagem,
+    ).pack(pady=5)
 
+    ctk.CTkButton(
+        tela_atual,
+        text="📷 Usar Câmera",
+        command=ler_camera,
+    ).pack(pady=5)
 
+def carregar_qr(codigo):
+    c = carregar_carrinho(codigo.strip().upper())
+    if not c:
+        messagebox.showerror("Erro", "Carrinho não encontrado!")
+        return
+    
+    carrinho.clear()
+    for item in c["itens"]:
+        p = pegar_produto(item["id"])
+        if p:
+            carrinho[p["id"]] = {"produto": p, "qtd": item["qty"]}
+    
+    tela_carrinho()
 
+def ler_imagem():
+    f = filedialog.askopenfilename(filetypes=[("Imagens", "*.png *.jpg")])
+    if f:
+        try:
+            from pyzbar.pyzbar import decode
+
+            d = decode(cv2.imread(f))
+            if d:
+                carregar_qr(d[0].data.decode())
+            else:
+                messagebox.showerror("Erro", "QR Code não encontrado!")
+        except Exception as e: 
+            messagebox.showerror("Erro", str(e))
+
+def ler_camera():
+    cap = cv2.VideoCapture(0)
+    if not cap.isOpened():
+        messagebox.showerror("Erro", "Câmera não disponivel!")
+        return
+
+    try:
+        from pyzbar.pyzbar import decode
+
+        while True:
+            ok, frame = cap.read()
+            if not ok:
+                break
+
+            d = decode(frame)
+            if d:
+                cap.release()
+                cv2.destroyAllWindows()
+                carregar_qr(d[0].data.decode())
+                return
+
+            cv2.imshow("Câmera - ESC para sair", frame)
+            if cv2.waitKey(1) & 0xFF == 27:
+                # 27 = é o codigo da tecla ESC
+                break
+    except Exception as e:
+        messagebox.showerror("Erro", str(e))
+    finally:
+        cap.release()
+        cv2.destroyAllWindows() 
 
 
 
@@ -178,6 +262,8 @@ def tela_carrinho():
     
     scroll = ctk.CTkScrollableFrame(tela_atual)
     scroll.pack(fill="both", expand=True, pady=10)
+
+
 
     for pid, item in carrinho.items():
         p = item["produto"]

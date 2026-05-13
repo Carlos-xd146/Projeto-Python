@@ -37,6 +37,17 @@ def pegar_produtos(filtro=""):
     conexao.close()
     return produtos
 
+def pegar_produto(produto_id):
+    conn = sqlite3.connect(caminho_bancodados)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM produtos where id = ?", (produto_id))
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return dict(row)
+    return {}
+
 def gerar_codigo():
     return hashlib.md5(str(time.time()).encode()).hexdigest()[:12].upper()
 
