@@ -142,7 +142,7 @@ def tela_produtos():
 
 def tela_qr_reader():
     global tela_atual
-    limpar_tela
+    limpar_tela()
     tela_atual = ctk.CTkFrame(root)
     tela_atual.pack(fill = "both", expand=True, padx=20, pady=20)
 
